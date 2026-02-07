@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel</title>
+<style>
+  body{ font-family: Arial; background:#f4f6fb; margin:0; }
+  .header{ background:#222; color:#fff; padding:15px; text-align:center; }
+  .box{ background:#fff; margin:15px; padding:15px; border-radius:12px; }
+  a{ color:#667eea; text-decoration:none; }
+  .danger{ background:#e74c3c; color:#fff; border:none; padding:6px 10px; border-radius:6px; }
+</style>
+</head>
+<body>
+<div class="header"><h2>🛠 Admin Panel</h2></div>
+
+<div class="box">
+  <h3>All Users</h3>
+  <ul>
+  {% for u in users %}
+    {% if u != "admin" %}
+    <li style="margin-bottom:8px;">
+      <strong>{{u}}</strong>
+      — <a href="/admin/user/{{u}}">👀 View</a>
+      <form method="post" action="/admin/delete_user/{{u}}" style="display:inline;" onsubmit="return confirm('Delete user {{u}} ? This will remove all files & links!');">
+        <button class="danger" style="margin-left:8px;">🗑️ Delete</button>
+      </form>
+    </li>
+    {% endif %}
+  {% endfor %}
+  </ul>
+</div>
+
+<div class="box" style="text-align:center;">
+  <a href="/dashboard">⬅ Back</a> | <a href="/logout">🚪 Logout</a>
+</div>
+</body>
+</html>

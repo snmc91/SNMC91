@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
+<style>
+  body{ margin:0; font-family: Arial, sans-serif; background:#f4f6fb; }
+  .header{ background:#667eea; color:#fff; padding:15px; text-align:center; }
+  .box{ background:#fff; margin:15px; padding:15px; border-radius:12px; box-shadow:0 5px 15px rgba(0,0,0,.1); }
+  input, button{ width:100%; padding:10px; margin:5px 0; border-radius:8px; border:1px solid #ccc; }
+  button{ background:#667eea; color:#fff; border:none; }
+  ul{ padding-left:18px; }
+  a{ text-decoration:none; color:#667eea; }
+
+  /* 🔥 Animated Upload Icon */
+  .upload-wrap{
+    text-align:center;
+  }
+  .upload-btn{
+    display:inline-flex;
+    justify-content:center;
+    align-items:center;
+    width:80px;
+    height:80px;
+    border-radius:50%;
+    background:#667eea;
+    color:#fff;
+    font-size:36px;
+    cursor:pointer;
+    animation:pulse 1.5s infinite;
+    margin:10px auto;
+  }
+  @keyframes pulse{
+    0% { box-shadow: 0 0 0 0 rgba(102,126,234,0.7); }
+    70% { box-shadow: 0 0 0 20px rgba(102,126,234,0); }
+    100% { box-shadow: 0 0 0 0 rgba(102,126,234,0); }
+  }
+  .upload-btn:hover{ background:#5563d9; }
+  .hint{ color:#666; font-size:13px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>☁️ 496</h2>
+  <p>Logged in as: {{user}}</p>
+</div>
+
+{% if user == "admin" %}
+  <div class="box" style="text-align:center;">
+    <a href="/admin">🛠 Open Admin Panel</a>
+  </div>
+{% endif %}
+
+<div class="box">
+  <h3>📁 Upload File</h3>
+  <form method="post" enctype="multipart/form-data" class="upload-wrap">
+    <input type="file" name="file" id="fileInput" style="display:none" onchange="this.form.submit()">
+    <label for="fileInput" class="upload-btn">⬆️</label>
+    <p class="hint">Tap the icon to upload file</p>
+  </form>
+</div>
+
+<div class="box">
+  <h3>🔗 Save Link</h3>
+  <form method="post">
+    <input name="link" placeholder="Paste your link">
+    <button>Add Link</button>
+  </form>
+</div>
+
+<div class="box">
+  <h3>📂 Your Files</h3>
+  <ul>
+  {% for f in files %}
+    <li>
+      <a href="/download/{{user}}/{{f}}">⬇️ {{f}}</a>
+      <form method="post" action="/delete_file/{{user}}/{{f}}" style="display:inline;">
+        <button style="margin-left:8px; background:#e74c3c; color:#fff; border:none; padding:4px 8px; border-radius:6px;">
+          ❌ Delete
+        </button>
+      </form>
+    </li>
+  {% endfor %}
+  </ul>
+</div>
+
+<div class="box">
+  <h3>🔗 Your Links</h3>
+  <ul>
+  {% for l in links %}
+    <li>
+      <a href="{{l}}" target="_blank">🌐 {{l}}</a>
+      <form method="post" action="/delete_link/{{ loop.index0 }}" style="display:inline;">
+        <button style="margin-left:8px; background:#e74c3c; color:#fff; border:none; padding:4px 8px; border-radius:6px;">
+          ❌ Delete
+        </button>
+      </form>
+    </li>
+  {% endfor %}
+  </ul>
+</div>
+
+<div class="box" style="text-align:center;">
+  <a href="/logout">🚪 Logout</a>
+</div>
+
+</body>
+</html>

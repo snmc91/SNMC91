@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Detail</title>
+<style>
+  body{ font-family: Arial; background:#f4f6fb; margin:0; }
+  .header{ background:#222; color:#fff; padding:15px; text-align:center; }
+  .box{ background:#fff; margin:15px; padding:15px; border-radius:12px; }
+  button{ padding:8px 12px; border:none; border-radius:6px; }
+  .danger{ background:#e74c3c; color:#fff; }
+  .ok{ background:#27ae60; color:#fff; }
+</style>
+</head>
+<body>
+<div class="header"><h2>👤 {{username}} (Admin View)</h2></div>
+
+<div class="box">
+  <h3>🔐 Change Password</h3>
+  <form method="post" action="/admin/change_password/{{username}}">
+    <input name="new_password" placeholder="New Password" required>
+    <button class="ok">Change</button>
+  </form>
+</div>
+
+<div class="box">
+  <h3>📂 Files</h3>
+  <ul>
+  {% for f in files %}
+    <li>{{f}}</li>
+  {% endfor %}
+  </ul>
+</div>
+
+<div class="box">
+  <h3>🔗 Links</h3>
+  <ul>
+  {% for l in links %}
+    <li>{{l}}</li>
+  {% endfor %}
+  </ul>
+</div>
+
+<div class="box">
+  <form method="post" action="/admin/reset_user/{{username}}">
+    <button class="danger">♻️ Reset User Data</button>
+  </form>
+</div>
+
+<div class="box" style="text-align:center;">
+  <a href="/admin">⬅ Back to Admin</a>
+</div>
+</body>
+</html>
