@@ -10,13 +10,13 @@ USERS_FILE = os.path.join(BASE_DIR, "users.json")
 PENDING_FILE = os.path.join(BASE_DIR, "pending_users.json")
 UPLOAD_BASE = os.path.join(BASE_DIR, "uploads")
 
-# 🔐 Telegram config
+# 🔐 Telegram config (YOUR VALUES)
 BOT_TOKEN = "8237574970:AAGGmIA8pPjarNEQZFvNB5q6oqx7G_BPBhY"
 ADMIN_CHAT_ID = "7701363302"
 
 os.makedirs(UPLOAD_BASE, exist_ok=True)
 
-# ---- HELPERS ----
+# ---------- HELPERS ----------
 def load_users():
     if not os.path.exists(USERS_FILE):
         with open(USERS_FILE, "w") as f:
@@ -44,13 +44,13 @@ def is_admin_user(username):
     return users.get(username, {}).get("is_admin") is True
 
 def send_telegram(msg):
-    url = f"https://api.telegram.org/bot{8237574970:AAGGmIA8pPjarNEQZFvNB5q6oqx7G_BPBhY}/sendMessage"
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     try:
-        requests.post(url, data={"7701363302": ADMIN_CHAT_ID, "text": msg})
-    except:
-        pass
+        requests.post(url, data={"chat_id": ADMIN_CHAT_ID, "text": msg}, timeout=10)
+    except Exception as e:
+        print("Telegram error:", e)
 
-# ---- USER ACTIONS ----
+# ---------- USER ACTIONS ----------
 @app.route("/delete_file/<username>/<name>", methods=["POST"])
 def delete_file(username, name):
     if "user" not in session or session["user"] != username:
@@ -141,7 +141,7 @@ def download(username, name):
         return redirect("/")
     return send_from_directory(os.path.join(UPLOAD_BASE, username), name, as_attachment=True)
 
-# ---- ADMIN PANEL ----
+# ---------- ADMIN PANEL ----------
 @app.route("/admin")
 def admin_panel():
     if "user" not in session or not is_admin_user(session["user"]):
@@ -149,101 +149,48 @@ def admin_panel():
     users = load_users()
     return render_template("admin.html", users=users)
 
-@app.route("/admin/update_user", methods=["POST"])
-def admin_update_user():
+@app.route("/admin/pending")
+def admin_pending():
     if "user" not in session or not is_admin_user(session["user"]):
         return redirect("/")
+    pending = load_pending()
+    return render_template("admin_pending.html", pending=pending)
 
-    old_username = request.form.get("old_username")
-    new_username = request.form.get("new_username")
-    new_password = request.form.get("new_password")
-
+@app.route("/admin/approve/<username>", methods=["POST"])
+def admin_approve(username):
+    if "user" not in session or not is_admin_user(session["user"]):
+        return redirect("/")
+    pending = load_pending()
     users = load_users()
-    if old_username in users:
-        target = old_username
 
-        if new_username and new_username != old_username and new_username not in users:
-            users[new_username] = users.pop(old_username)
-            users[new_username]["is_admin"] = users[new_username].get("is_admin", False)
-
-            old_dir = os.path.join(UPLOAD_BASE, old_username)
-            new_dir = os.path.join(UPLOAD_BASE, new_username)
-            if os.path.exists(old_dir):
-                os.rename(old_dir, new_dir)
-
-            if session["user"] == old_username:
-                session["user"] = new_username
-
-            target = new_username
-
-        if new_password:
-            users[target]["password"] = generate_password_hash(new_password)
-
+    if username in pending:
+        users[username] = pending.pop(username)
         save_users(users)
+        save_pending(pending)
+        os.makedirs(os.path.join(UPLOAD_BASE, username), exist_ok=True)
+        send_telegram(f"✅ Approved: {username}")
 
-    return redirect("/admin")
+    return redirect("/admin/pending")
 
-@app.route("/admin/user/<username>")
-def admin_view_user(username):
+@app.route("/admin/reject/<username>", methods=["POST"])
+def admin_reject(username):
     if "user" not in session or not is_admin_user(session["user"]):
         return redirect("/")
-    users = load_users()
-    user_dir = os.path.join(UPLOAD_BASE, username)
-    files = os.listdir(user_dir) if os.path.exists(user_dir) else []
-    links = users.get(username, {}).get("links", [])
-    return render_template("admin_user.html", username=username, files=files, links=links)
+    pending = load_pending()
 
-@app.route("/admin/reset_user/<username>", methods=["POST"])
-def admin_reset_user(username):
-    if "user" not in session or not is_admin_user(session["user"]):
-        return redirect("/")
-    users = load_users()
-    if username in users:
-        users[username]["links"] = []
-        save_users(users)
-    user_dir = os.path.join(UPLOAD_BASE, username)
-    if os.path.exists(user_dir):
-        for f in os.listdir(user_dir):
-            try:
-                os.remove(os.path.join(user_dir, f))
-            except:
-                pass
-    return redirect(f"/admin/user/{username}")
+    if username in pending:
+        pending.pop(username)
+        save_pending(pending)
+        send_telegram(f"❌ Rejected: {username}")
 
-@app.route("/admin/delete_user/<username>", methods=["POST"])
-def admin_delete_user(username):
-    if "user" not in session or not is_admin_user(session["user"]):
-        return redirect("/")
-
-    users = load_users()
-
-    if username in users and users.get(username, {}).get("is_admin"):
-        return redirect("/admin")
-
-    if username in users:
-        users.pop(username, None)
-        save_users(users)
-
-    user_dir = os.path.join(UPLOAD_BASE, username)
-    if os.path.exists(user_dir):
-        for f in os.listdir(user_dir):
-            try:
-                os.remove(os.path.join(user_dir, f))
-            except:
-                pass
-        try:
-            os.rmdir(user_dir)
-        except:
-            pass
-
-    return redirect("/admin")
+    return redirect("/admin/pending")
 
 @app.route("/logout")
 def logout():
     session.pop("user", None)
     return redirect("/")
 
-# ---- RENDER PORT FIX ----
+# ---------- RENDER PORT FIX ----------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
