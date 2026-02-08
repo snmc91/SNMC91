@@ -49,13 +49,11 @@ def send_telegram(msg):
         requests.post(url, data={"chat_id": ADMIN_CHAT_ID, "text": msg}, timeout=10)
     except Exception as e:
         print("Telegram error:", e)
-# ---------- TELEGRAM INLINE BUTTONS ----------
-TELEGRAM_WEBHOOK_SECRET = "snmc91_secret_key_123"  # koi random string rakh de
 
 def send_telegram_approval(username):
-   url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     payload = {
-        "chat_id": 7701363302,
+        "chat_id": ADMIN_CHAT_ID,
         "text": f"🆕 New account request:\nUsername: {username}",
         "reply_markup": json.dumps({
             "inline_keyboard": [
@@ -71,29 +69,7 @@ def send_telegram_approval(username):
     except Exception as e:
         print("Telegram send error:", e)
 
-def telegram_webhook():
-    data = request.get_json(silent=True) or {}
-    cb = data.get("callback_query")
-    if not cb:
-        return "ok"
-
-    action, username = cb.get("data", "").split(":", 1)
-    pending = load_pending()
-    users = load_users()
-
-    if action == "approve" and username in pending:
-        users[username] = pending.pop(username)
-        save_users(users)
-        save_pending(pending)
-        os.makedirs(os.path.join(UPLOAD_BASE, username), exist_ok=True)
-        send_telegram(f"✅ Approved: {username}")
-
-    if action == "reject" and username in pending:
-        pending.pop(username)
-        save_pending(pending)
-        send_telegram(f"❌ Rejected: {username}")
-
-    return "ok"
+# ---------- TELEGRAM WEBHOOK ----------
 @app.route("/telegram/webhook", methods=["POST"])
 def telegram_webhook():
     data = request.get_json(silent=True) or {}
@@ -122,6 +98,7 @@ def telegram_webhook():
         send_telegram(f"❌ Rejected: {username}")
 
     return "ok"
+
 # ---------- USER ACTIONS ----------
 @app.route("/delete_file/<username>/<name>", methods=["POST"])
 def delete_file(username, name):
@@ -179,11 +156,11 @@ def register():
         }
         save_pending(pending)
 
-        # 👇 Ye line yahin rehni chahiye (same indentation)
         send_telegram_approval(u)
 
         return render_template("register.html", success="Request sent to admin. Wait for approval.")
     return render_template("register.html")
+
 @app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
     if "user" not in session:
@@ -220,41 +197,7 @@ def admin_panel():
         return redirect("/")
     users = load_users()
     return render_template("admin.html", users=users)
-@app.route("/admin/update_user", methods=["POST"])
-def admin_update_user():
-    if "user" not in session or not is_admin_user(session["user"]):
-        return redirect("/")
 
-    old_username = request.form.get("old_username")
-    new_username = request.form.get("new_username")
-    new_password = request.form.get("new_password")
-
-    users = load_users()
-    if old_username in users:
-        target = old_username
-
-        # change username
-        if new_username and new_username != old_username and new_username not in users:
-            users[new_username] = users.pop(old_username)
-            users[new_username]["is_admin"] = users[new_username].get("is_admin", False)
-
-            old_dir = os.path.join(UPLOAD_BASE, old_username)
-            new_dir = os.path.join(UPLOAD_BASE, new_username)
-            if os.path.exists(old_dir):
-                os.rename(old_dir, new_dir)
-
-            if session.get("user") == old_username:
-                session["user"] = new_username
-
-            target = new_username
-
-        # change password
-        if new_password:
-            users[target]["password"] = generate_password_hash(new_password)
-
-        save_users(users)
-
-    return redirect("/admin")
 @app.route("/admin/pending")
 def admin_pending():
     if "user" not in session or not is_admin_user(session["user"]):
@@ -268,14 +211,12 @@ def admin_approve(username):
         return redirect("/")
     pending = load_pending()
     users = load_users()
-
     if username in pending:
         users[username] = pending.pop(username)
         save_users(users)
         save_pending(pending)
         os.makedirs(os.path.join(UPLOAD_BASE, username), exist_ok=True)
         send_telegram(f"✅ Approved: {username}")
-
     return redirect("/admin/pending")
 
 @app.route("/admin/reject/<username>", methods=["POST"])
@@ -283,22 +224,17 @@ def admin_reject(username):
     if "user" not in session or not is_admin_user(session["user"]):
         return redirect("/")
     pending = load_pending()
-
     if username in pending:
         pending.pop(username)
         save_pending(pending)
         send_telegram(f"❌ Rejected: {username}")
-
     return redirect("/admin/pending")
 
 @app.route("/admin/delete_user/<username>", methods=["POST"])
 def admin_delete_user(username):
     if "user" not in session or not is_admin_user(session["user"]):
         return redirect("/")
-
     users = load_users()
-
-    # admin ko delete na hone do
     if users.get(username, {}).get("is_admin") is True:
         return redirect("/admin")
 
