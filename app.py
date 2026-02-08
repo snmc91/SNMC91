@@ -53,7 +53,7 @@ def send_telegram(msg):
 TELEGRAM_WEBHOOK_SECRET = "snmc91_secret_key_123"  # koi random string rakh de
 
 def send_telegram_approval(username):
-    url = f"https://api.telegram.org/bot{8237574970:AAGGmIA8pPjarNEQZFvNB5q6oqx7G_BPBhY}/sendMessage"
+   url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": 7701363302,
         "text": f"🆕 New account request:\nUsername: {username}",
