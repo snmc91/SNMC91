@@ -6,29 +6,48 @@
 <style>
   body{ font-family: Arial; background:#f4f6fb; margin:0; }
   .header{ background:#222; color:#fff; padding:15px; text-align:center; }
-  .box{ background:#fff; margin:15px; padding:15px; border-radius:12px; }
+  .box{ background:#fff; margin:15px; padding:15px; border-radius:12px; box-shadow:0 5px 15px rgba(0,0,0,.08); }
   a{ color:#667eea; text-decoration:none; }
-  .danger{ background:#e74c3c; color:#fff; border:none; padding:6px 10px; border-radius:6px; }
+  input, button{ padding:8px; margin:4px 0; border-radius:6px; border:1px solid #ccc; width:100%; }
+  button{ background:#667eea; color:#fff; border:none; }
+  .danger{ background:#e74c3c; }
+  .user-card{ border:1px solid #eee; padding:10px; border-radius:8px; margin-bottom:10px; }
+  .row{ display:grid; grid-template-columns: 1fr 1fr; gap:6px; }
+  .actions{ display:flex; gap:6px; margin-top:6px; }
 </style>
 </head>
 <body>
 <div class="header"><h2>🛠 Admin Panel</h2></div>
 
 <div class="box">
-  <h3>All Users</h3>
-  <ul>
-  {% for u in users %}
-    {% if u != "admin" %}
-    <li style="margin-bottom:8px;">
-      <strong>{{u}}</strong>
-      — <a href="/admin/user/{{u}}">👀 View</a>
-      <form method="post" action="/admin/delete_user/{{u}}" style="display:inline;" onsubmit="return confirm('Delete user {{u}} ? This will remove all files & links!');">
-        <button class="danger" style="margin-left:8px;">🗑️ Delete</button>
+  <h3>All Users (View / Update / Delete)</h3>
+
+  {% for uname, u in users.items() %}
+  <div class="user-card">
+    <strong>{{uname}}</strong>
+
+    <!-- Update username/password -->
+    <form method="post" action="/admin/update_user">
+      <input type="hidden" name="old_username" value="{{uname}}">
+      <div class="row">
+        <input name="new_username" placeholder="New username (optional)">
+        <input name="new_password" placeholder="New password (optional)">
+      </div>
+      <button>Update</button>
+    </form>
+
+    <!-- View user data -->
+    <div class="actions">
+      <a href="/admin/user/{{uname}}">👀 View</a>
+
+      {% if uname != session['user'] %}
+      <form method="post" action="/admin/delete_user/{{uname}}" onsubmit="return confirm('Delete user {{uname}} ? This will remove all files & links!');">
+        <button class="danger">🗑️ Delete</button>
       </form>
-    </li>
-    {% endif %}
+      {% endif %}
+    </div>
+  </div>
   {% endfor %}
-  </ul>
 </div>
 
 <div class="box" style="text-align:center;">

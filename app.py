@@ -110,7 +110,50 @@ def admin_panel():
         return redirect("/")
     users = load_users()
     return render_template("admin.html", users=users)
+ADMIN_USER = "admin"  # agar tu admin username change karega, ye auto update hoga
 
+@app.route("/admin")
+def admin_panel():
+    if "user" not in session or session["user"] != ADMIN_USER:
+        return redirect("/")
+    users = load_users()
+    return render_template("admin.html", users=users)
+
+@app.route("/admin/update_user", methods=["POST"])
+def admin_update_user():
+    global ADMIN_USER
+    if "user" not in session or session["user"] != ADMIN_USER:
+        return redirect("/")
+
+    old_username = request.form.get("old_username")
+    new_username = request.form.get("new_username")
+    new_password = request.form.get("new_password")
+
+    users = load_users()
+
+    if old_username in users:
+        # Username change
+        if new_username and new_username != old_username:
+            users[new_username] = users.pop(old_username)
+
+            # uploads folder rename
+            old_dir = os.path.join(UPLOAD_BASE, old_username)
+            new_dir = os.path.join(UPLOAD_BASE, new_username)
+            if os.path.exists(old_dir):
+                os.rename(old_dir, new_dir)
+
+            # admin username update
+            if old_username == ADMIN_USER:
+                ADMIN_USER = new_username
+                session["user"] = new_username
+
+        # Password change
+        if new_password:
+            users[new_username or old_username]["password"] = generate_password_hash(new_password)
+
+        save_users(users)
+
+    return redirect("/admin")
 @app.route("/admin/user/<username>")
 def admin_view_user(username):
     if "user" not in session or session["user"] != ADMIN_USER:
