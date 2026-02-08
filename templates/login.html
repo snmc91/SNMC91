@@ -24,6 +24,7 @@
     max-width:380px;
     padding:24px;
     color:#fff;
+    z-index:2;
   }
   h1{
     text-align:center;
@@ -78,10 +79,82 @@
     text-decoration:none;
     border-bottom:1px dashed rgba(255,255,255,.6);
   }
+
+  /* 🔄 Premium Loader Animation */
+  .loader {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: inline-block;
+    position: relative;
+    border: 3px solid;
+    border-color: #FFF #FFF transparent transparent;
+    box-sizing: border-box;
+    animation: rotation 1s linear infinite;
+  }
+  .loader::after,
+  .loader::before {
+    content: '';  
+    box-sizing: border-box;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    margin: auto;
+    border: 3px solid;
+    border-color: transparent transparent #FF3D00 #FF3D00;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    animation: rotationBack 0.5s linear infinite;
+    transform-origin: center center;
+  }
+  .loader::before {
+    width: 32px;
+    height: 32px;
+    border-color: #FFF #FFF transparent transparent;
+    animation: rotation 1.5s linear infinite;
+  }
+  @keyframes rotation {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  } 
+  @keyframes rotationBack {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(-360deg); }
+  }
+
+  /* 🔲 Loader Overlay */
+  .loader-wrap{
+    position:fixed;
+    inset:0;
+    background:rgba(10,10,20,.85);
+    backdrop-filter: blur(4px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:9999;
+  }
+  .loader-text{
+    margin-top:12px;
+    color:#fff;
+    font-size:14px;
+    letter-spacing:1px;
+    text-align:center;
+  }
 </style>
 </head>
 <body>
   <div class="overlay"></div>
+
+  <!-- 🔄 Loading Overlay -->
+  <div class="loader-wrap" id="loader">
+    <div style="text-align:center;">
+      <span class="loader"></span>
+      <div class="loader-text">Loading SNMC Cloud...</div>
+    </div>
+  </div>
 
   <div class="card">
     <h1>Login</h1>
@@ -110,6 +183,12 @@
     const p = document.getElementById("pwd");
     p.type = p.type === "password" ? "text" : "password";
   }
+
+  // Hide loader when page fully loads
+  window.addEventListener("load", function(){
+    const l = document.getElementById("loader");
+    if(l){ l.style.display = "none"; }
+  });
 </script>
 </body>
 </html>
