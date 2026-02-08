@@ -260,7 +260,41 @@ def admin_delete_user(username):
 def logout():
     session.pop("user", None)
     return redirect("/")
+@app.route("/admin/update_user", methods=["POST"])
+def admin_update_user():
+    if "user" not in session or not is_admin_user(session["user"]):
+        return redirect("/")
 
+    old_username = request.form.get("old_username")
+    new_username = request.form.get("new_username")
+    new_password = request.form.get("new_password")
+
+    users = load_users()
+    if old_username in users:
+        target = old_username
+
+        # Username change
+        if new_username and new_username != old_username and new_username not in users:
+            users[new_username] = users.pop(old_username)
+            users[new_username]["is_admin"] = users[new_username].get("is_admin", False)
+
+            old_dir = os.path.join(UPLOAD_BASE, old_username)
+            new_dir = os.path.join(UPLOAD_BASE, new_username)
+            if os.path.exists(old_dir):
+                os.rename(old_dir, new_dir)
+
+            if session.get("user") == old_username:
+                session["user"] = new_username
+
+            target = new_username
+
+        # Password change
+        if new_password:
+            users[target]["password"] = generate_password_hash(new_password)
+
+        save_users(users)
+
+    return redirect("/admin")
 # ---------- RENDER PORT FIX ----------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
