@@ -41,9 +41,10 @@
       <a href="/admin/user/{{uname}}">👀 View</a>
 
       {% if uname != session['user'] %}
-      <form method="post" action="/admin/delete_user/{{uname}}" onsubmit="return confirm('Delete user {{uname}} ? This will remove all files & links!');">
-        <button class="danger">🗑️ Delete</button>
-      </form>
+     <form method="post" action="/admin/delete_user/{{u}}" style="display:inline;"
+      onsubmit="return confirm('Delete user {{u}} ? This will remove all files & links!');">
+  <button class="danger">🗑️ Delete</button>
+</form>
       {% endif %}
     </div>
   </div>

@@ -184,7 +184,34 @@ def admin_reject(username):
         send_telegram(f"❌ Rejected: {username}")
 
     return redirect("/admin/pending")
+@app.route("/admin/delete_user/<username>", methods=["POST"])
+def admin_delete_user(username):
+    if "user" not in session or not is_admin_user(session["user"]):
+        return redirect("/")
 
+    users = load_users()
+
+    # admin ko delete na hone do
+    if username in users and users.get(username, {}).get("is_admin") is True:
+        return redirect("/admin")
+
+    if username in users:
+        users.pop(username, None)
+        save_users(users)
+
+    user_dir = os.path.join(UPLOAD_BASE, username)
+    if os.path.exists(user_dir):
+        for f in os.listdir(user_dir):
+            try:
+                os.remove(os.path.join(user_dir, f))
+            except:
+                pass
+        try:
+            os.rmdir(user_dir)
+        except:
+            pass
+
+    return redirect("/admin")
 @app.route("/logout")
 def logout():
     session.pop("user", None)
