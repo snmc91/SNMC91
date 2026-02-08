@@ -49,7 +49,52 @@ def send_telegram(msg):
         requests.post(url, data={"chat_id": ADMIN_CHAT_ID, "text": msg}, timeout=10)
     except Exception as e:
         print("Telegram error:", e)
+# ---------- TELEGRAM INLINE BUTTONS ----------
+TELEGRAM_WEBHOOK_SECRET = "snmc91_secret_key_123"  # koi random string rakh de
 
+def send_telegram_approval(username):
+    url = f"https://api.telegram.org/bot{8237574970:AAGGmIA8pPjarNEQZFvNB5q6oqx7G_BPBhY}/sendMessage"
+    payload = {
+        "chat_id": 7701363302,
+        "text": f"🆕 New account request:\nUsername: {username}",
+        "reply_markup": json.dumps({
+            "inline_keyboard": [
+                [
+                    {"text": "✅ Approve", "callback_data": f"approve:{username}"},
+                    {"text": "❌ Reject", "callback_data": f"reject:{username}"}
+                ]
+            ]
+        })
+    }
+    try:
+        requests.post(url, data=payload, timeout=10)
+    except Exception as e:
+        print("Telegram send error:", e)
+
+@app.route("/telegram/webhook", methods=["POST"])
+def telegram_webhook():
+    data = request.get_json(silent=True) or {}
+    cb = data.get("callback_query")
+    if not cb:
+        return "ok"
+
+    action, username = cb.get("data", "").split(":", 1)
+    pending = load_pending()
+    users = load_users()
+
+    if action == "approve" and username in pending:
+        users[username] = pending.pop(username)
+        save_users(users)
+        save_pending(pending)
+        os.makedirs(os.path.join(UPLOAD_BASE, username), exist_ok=True)
+        send_telegram(f"✅ Approved: {username}")
+
+    if action == "reject" and username in pending:
+        pending.pop(username)
+        save_pending(pending)
+        send_telegram(f"❌ Rejected: {username}")
+
+    return "ok"
 # ---------- USER ACTIONS ----------
 @app.route("/delete_file/<username>/<name>", methods=["POST"])
 def delete_file(username, name):
@@ -107,7 +152,7 @@ def register():
         }
         save_pending(pending)
 
-        send_telegram(f"🆕 New account request:\nUsername: {u}\nApprove from Admin Panel.")
+       send_telegram_approval(u)
 
         return render_template("register.html", success="Request sent to admin. Wait for approval.")
     return render_template("register.html")
