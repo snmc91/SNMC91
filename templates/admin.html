@@ -35,27 +35,27 @@
       <span class="badge">admin</span>
     {% endif %}
 
-    <!-- Update username/password -->
-    <form method="post" action="/admin/update_user">
-      <input type="hidden" name="old_username" value="{{ uname }}">
-      <div class="row">
-        <input name="new_username" placeholder="New username (optional)">
-        <input name="new_password" placeholder="New password (optional)">
-      </div>
-      <button>Update</button>
-    </form>
+   <!-- Update username/password -->
+<form method="post" action="/admin/update_user">
+  <input type="hidden" name="old_username" value="{{ uname }}">
+  <div class="row">
+    <input name="new_username" placeholder="New username (optional)">
+    <input name="new_password" placeholder="New password (optional)">
+  </div>
+  <button>Update</button>
+</form>
 
-    <!-- Actions -->
-    <div class="actions">
-      <a href="/admin/user/{{ uname }}">👀 View</a>
+<!-- Actions -->
+<div class="actions">
+  <a href="/admin/user/{{ uname }}">👀 View</a>
 
-      {% if uname != session['user'] and not u.is_admin %}
-      <form method="post" action="/admin/delete_user/{{ uname }}" style="display:inline;"
-            onsubmit="return confirm('Delete user {{ uname }} ? This will remove all files & links!');">
-        <button class="danger">🗑️ Delete</button>
-      </form>
-      {% endif %}
-    </div>
+  {% if uname != session['user'] and not u.is_admin %}
+  <form method="post" action="/admin/delete_user/{{ uname }}"
+        onsubmit="return confirm('Delete user {{ uname }} ? This will remove all files & links!');">
+    <button class="danger">🗑️ Delete</button>
+  </form>
+  {% endif %}
+</div>
   </div>
   {% endfor %}
 </div>
