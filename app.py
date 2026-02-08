@@ -10,7 +10,7 @@ USERS_FILE = os.path.join(BASE_DIR, "users.json")
 PENDING_FILE = os.path.join(BASE_DIR, "pending_users.json")
 UPLOAD_BASE = os.path.join(BASE_DIR, "uploads")
 
-# 🔐 Telegram config (YOUR VALUES)
+# 🔐 Telegram config
 BOT_TOKEN = "8237574970:AAGGmIA8pPjarNEQZFvNB5q6oqx7G_BPBhY"
 ADMIN_CHAT_ID = "7701363302"
 
@@ -107,7 +107,7 @@ def register():
         }
         save_pending(pending)
 
-        send_telegram(f"🆕 New account request:\nUsername: {u}\n\nApprove from Admin Panel.")
+        send_telegram(f"🆕 New account request:\nUsername: {u}\nApprove from Admin Panel.")
 
         return render_template("register.html", success="Request sent to admin. Wait for approval.")
     return render_template("register.html")
@@ -184,6 +184,7 @@ def admin_reject(username):
         send_telegram(f"❌ Rejected: {username}")
 
     return redirect("/admin/pending")
+
 @app.route("/admin/delete_user/<username>", methods=["POST"])
 def admin_delete_user(username):
     if "user" not in session or not is_admin_user(session["user"]):
@@ -192,7 +193,7 @@ def admin_delete_user(username):
     users = load_users()
 
     # admin ko delete na hone do
-    if username in users and users.get(username, {}).get("is_admin") is True:
+    if users.get(username, {}).get("is_admin") is True:
         return redirect("/admin")
 
     if username in users:
@@ -212,6 +213,7 @@ def admin_delete_user(username):
             pass
 
     return redirect("/admin")
+
 @app.route("/logout")
 def logout():
     session.pop("user", None)
