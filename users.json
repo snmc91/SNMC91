@@ -1,14 +1,17 @@
 {
-  "admin": {
+  "Kuldeep21042005": {
     "password": "scrypt:32768:8:1$QB9yK7VO9H0rAZs2$e30183c50e0b7f196ce172fe942f30dede8d8ccf98f9c05052497385aa50c4af3a6a0532a1519b0f4b8bdf14596565f732d26bb56a83bd76282236357979ee7d",
-    "links": []
+    "links": [],
+    "is_admin": true
   },
   "Pharmacology": {
     "password": "scrypt:32768:8:1$d3pBxBYNj2VrXUa9$f05d4589b159bc59c5328ea69af2a0d96a05cb1a90dc770f5b6785c3e039d697eec0a663e720848d6df5b3dc4004422307be6d545860d8fa2401bf4be573d2a4",
-    "links": []
+    "links": [],
+    "is_admin": false
   },
   "Pathology": {
     "password": "scrypt:32768:8:1$PZoC6GAbX2ezaZXI$40aaaab6ec9d7bab1b0629f26bf5988a428ede6f76b61e05bca0bba71dcd607fa45b6590dae7803b664a1f9c9314411efbf8151cd02f88dd675a71c425bad7f1",
-    "links": []
+    "links": [],
+    "is_admin": false
   }
 }

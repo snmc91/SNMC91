@@ -13,9 +13,7 @@
   a{ text-decoration:none; color:#667eea; }
 
   /* 🔥 Animated Upload Icon */
-  .upload-wrap{
-    text-align:center;
-  }
+  .upload-wrap{ text-align:center; }
   .upload-btn{
     display:inline-flex;
     justify-content:center;
@@ -46,10 +44,10 @@
   <p>Logged in as: {{user}}</p>
 </div>
 
-{% if user == "admin" %}
-  <div class="box" style="text-align:center;">
-    <a href="/admin">🛠 Open Admin Panel</a>
-  </div>
+{% if is_admin %}
+<div class="box" style="text-align:center;">
+  <a href="/admin">🛠 Open Admin Panel</a>
+</div>
 {% endif %}
 
 <div class="box">

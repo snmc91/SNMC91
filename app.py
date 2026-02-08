@@ -5,9 +5,6 @@ import os, json
 app = Flask(__name__)
 app.secret_key = "mysecretkey"
 
-# ---- CONFIG ----
-ADMIN_USER = "admin"
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 USERS_FILE = os.path.join(BASE_DIR, "users.json")
 UPLOAD_BASE = os.path.join(BASE_DIR, "uploads")
@@ -25,6 +22,10 @@ def load_users():
 def save_users(data):
     with open(USERS_FILE, "w") as f:
         json.dump(data, f, indent=2)
+
+def is_admin_user(username):
+    users = load_users()
+    return users.get(username, {}).get("is_admin") is True
 
 # ---- USER ACTIONS ----
 @app.route("/delete_file/<username>/<name>", methods=["POST"])
@@ -66,10 +67,11 @@ def register():
         u = request.form.get("username")
         p = request.form.get("password")
         users = load_users()
-        if u and p and u not in users and u != ADMIN_USER:
+        if u and p and u not in users:
             users[u] = {
                 "password": generate_password_hash(p),
-                "links": []
+                "links": [],
+                "is_admin": False
             }
             save_users(users)
             os.makedirs(os.path.join(UPLOAD_BASE, u), exist_ok=True)
@@ -97,7 +99,7 @@ def dashboard():
 
     files = os.listdir(user_dir)
     links = users[u]["links"]
-    return render_template("dashboard.html", files=files, links=links, user=u)
+    return render_template("dashboard.html", files=files, links=links, user=u, is_admin=is_admin_user(u))
 
 @app.route("/download/<username>/<name>")
 def download(username, name):
@@ -108,15 +110,14 @@ def download(username, name):
 # ---- ADMIN PANEL ----
 @app.route("/admin")
 def admin_panel():
-    if "user" not in session or session["user"] != ADMIN_USER:
+    if "user" not in session or not is_admin_user(session["user"]):
         return redirect("/")
     users = load_users()
     return render_template("admin.html", users=users)
 
 @app.route("/admin/update_user", methods=["POST"])
 def admin_update_user():
-    global ADMIN_USER
-    if "user" not in session or session["user"] != ADMIN_USER:
+    if "user" not in session or not is_admin_user(session["user"]):
         return redirect("/")
 
     old_username = request.form.get("old_username")
@@ -124,6 +125,7 @@ def admin_update_user():
     new_password = request.form.get("new_password")
 
     users = load_users()
+
     if old_username in users:
         target = old_username
 
@@ -131,13 +133,16 @@ def admin_update_user():
         if new_username and new_username != old_username and new_username not in users:
             users[new_username] = users.pop(old_username)
 
+            # preserve admin flag
+            users[new_username]["is_admin"] = users[new_username].get("is_admin", False)
+
             old_dir = os.path.join(UPLOAD_BASE, old_username)
             new_dir = os.path.join(UPLOAD_BASE, new_username)
             if os.path.exists(old_dir):
                 os.rename(old_dir, new_dir)
 
-            if old_username == ADMIN_USER:
-                ADMIN_USER = new_username
+            # Update session if admin changed own username
+            if session["user"] == old_username:
                 session["user"] = new_username
 
             target = new_username
@@ -152,7 +157,7 @@ def admin_update_user():
 
 @app.route("/admin/user/<username>")
 def admin_view_user(username):
-    if "user" not in session or session["user"] != ADMIN_USER:
+    if "user" not in session or not is_admin_user(session["user"]):
         return redirect("/")
     users = load_users()
     user_dir = os.path.join(UPLOAD_BASE, username)
@@ -162,7 +167,7 @@ def admin_view_user(username):
 
 @app.route("/admin/reset_user/<username>", methods=["POST"])
 def admin_reset_user(username):
-    if "user" not in session or session["user"] != ADMIN_USER:
+    if "user" not in session or not is_admin_user(session["user"]):
         return redirect("/")
     users = load_users()
     if username in users:
@@ -179,12 +184,14 @@ def admin_reset_user(username):
 
 @app.route("/admin/delete_user/<username>", methods=["POST"])
 def admin_delete_user(username):
-    if "user" not in session or session["user"] != ADMIN_USER:
+    if "user" not in session or not is_admin_user(session["user"]):
         return redirect("/")
-    if username == ADMIN_USER:
+    users = load_users()
+
+    # Prevent deleting the last admin
+    if username in users and users.get(username, {}).get("is_admin"):
         return redirect("/admin")
 
-    users = load_users()
     if username in users:
         users.pop(username, None)
         save_users(users)
@@ -210,6 +217,5 @@ def logout():
 
 # ---- RENDER PORT FIX ----
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
