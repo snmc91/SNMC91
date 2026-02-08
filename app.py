@@ -71,7 +71,6 @@ def send_telegram_approval(username):
     except Exception as e:
         print("Telegram send error:", e)
 
-@app.route("/telegram/webhook", methods=["POST"])
 def telegram_webhook():
     data = request.get_json(silent=True) or {}
     cb = data.get("callback_query")
@@ -90,6 +89,34 @@ def telegram_webhook():
         send_telegram(f"✅ Approved: {username}")
 
     if action == "reject" and username in pending:
+        pending.pop(username)
+        save_pending(pending)
+        send_telegram(f"❌ Rejected: {username}")
+
+    return "ok"
+@app.route("/telegram/webhook", methods=["POST"])
+def telegram_webhook():
+    data = request.get_json(silent=True) or {}
+    cb = data.get("callback_query")
+    if not cb:
+        return "ok"
+
+    payload = cb.get("data", "")
+    if ":" not in payload:
+        return "ok"
+
+    action, username = payload.split(":", 1)
+    pending = load_pending()
+    users = load_users()
+
+    if action == "approve" and username in pending:
+        users[username] = pending.pop(username)
+        save_users(users)
+        save_pending(pending)
+        os.makedirs(os.path.join(UPLOAD_BASE, username), exist_ok=True)
+        send_telegram(f"✅ Approved: {username}")
+
+    elif action == "reject" and username in pending:
         pending.pop(username)
         save_pending(pending)
         send_telegram(f"❌ Rejected: {username}")
@@ -152,11 +179,11 @@ def register():
         }
         save_pending(pending)
 
-       send_telegram_approval(u)
+        # 👇 Ye line yahin rehni chahiye (same indentation)
+        send_telegram_approval(u)
 
         return render_template("register.html", success="Request sent to admin. Wait for approval.")
     return render_template("register.html")
-
 @app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
     if "user" not in session:
