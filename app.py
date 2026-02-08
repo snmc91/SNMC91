@@ -1,13 +1,18 @@
 from flask import Flask, render_template, request, redirect, send_from_directory, session
 from werkzeug.security import generate_password_hash, check_password_hash
-import os, json
+import os, json, requests
 
 app = Flask(__name__)
 app.secret_key = "mysecretkey"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 USERS_FILE = os.path.join(BASE_DIR, "users.json")
+PENDING_FILE = os.path.join(BASE_DIR, "pending_users.json")
 UPLOAD_BASE = os.path.join(BASE_DIR, "uploads")
+
+# 🔐 Telegram config
+BOT_TOKEN = "8237574970:AAGGmIA8pPjarNEQZFvNB5q6oqx7G_BPBhY"
+ADMIN_CHAT_ID = "7701363302"
 
 os.makedirs(UPLOAD_BASE, exist_ok=True)
 
@@ -23,9 +28,27 @@ def save_users(data):
     with open(USERS_FILE, "w") as f:
         json.dump(data, f, indent=2)
 
+def load_pending():
+    if not os.path.exists(PENDING_FILE):
+        with open(PENDING_FILE, "w") as f:
+            json.dump({}, f)
+    with open(PENDING_FILE, "r") as f:
+        return json.load(f)
+
+def save_pending(data):
+    with open(PENDING_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
 def is_admin_user(username):
     users = load_users()
     return users.get(username, {}).get("is_admin") is True
+
+def send_telegram(msg):
+    url = f"https://api.telegram.org/bot{8237574970:AAGGmIA8pPjarNEQZFvNB5q6oqx7G_BPBhY}/sendMessage"
+    try:
+        requests.post(url, data={"7701363302": ADMIN_CHAT_ID, "text": msg})
+    except:
+        pass
 
 # ---- USER ACTIONS ----
 @app.route("/delete_file/<username>/<name>", methods=["POST"])
@@ -61,21 +84,32 @@ def login():
             return redirect("/dashboard")
     return render_template("login.html")
 
+# 🔔 REGISTER → pending + Telegram notify
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
         u = request.form.get("username")
         p = request.form.get("password")
+
         users = load_users()
-        if u and p and u not in users:
-            users[u] = {
-                "password": generate_password_hash(p),
-                "links": [],
-                "is_admin": False
-            }
-            save_users(users)
-            os.makedirs(os.path.join(UPLOAD_BASE, u), exist_ok=True)
-            return redirect("/")
+        pending = load_pending()
+
+        if not u or not p:
+            return render_template("register.html", error="Username & password required")
+
+        if u in users or u in pending:
+            return render_template("register.html", error="Username already exists or pending approval")
+
+        pending[u] = {
+            "password": generate_password_hash(p),
+            "links": [],
+            "is_admin": False
+        }
+        save_pending(pending)
+
+        send_telegram(f"🆕 New account request:\nUsername: {u}\n\nApprove from Admin Panel.")
+
+        return render_template("register.html", success="Request sent to admin. Wait for approval.")
     return render_template("register.html")
 
 @app.route("/dashboard", methods=["GET", "POST"])
@@ -125,15 +159,11 @@ def admin_update_user():
     new_password = request.form.get("new_password")
 
     users = load_users()
-
     if old_username in users:
         target = old_username
 
-        # Change username (avoid duplicates)
         if new_username and new_username != old_username and new_username not in users:
             users[new_username] = users.pop(old_username)
-
-            # preserve admin flag
             users[new_username]["is_admin"] = users[new_username].get("is_admin", False)
 
             old_dir = os.path.join(UPLOAD_BASE, old_username)
@@ -141,13 +171,11 @@ def admin_update_user():
             if os.path.exists(old_dir):
                 os.rename(old_dir, new_dir)
 
-            # Update session if admin changed own username
             if session["user"] == old_username:
                 session["user"] = new_username
 
             target = new_username
 
-        # Change password
         if new_password:
             users[target]["password"] = generate_password_hash(new_password)
 
@@ -186,9 +214,9 @@ def admin_reset_user(username):
 def admin_delete_user(username):
     if "user" not in session or not is_admin_user(session["user"]):
         return redirect("/")
+
     users = load_users()
 
-    # Prevent deleting the last admin
     if username in users and users.get(username, {}).get("is_admin"):
         return redirect("/admin")
 
