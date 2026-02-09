@@ -11,8 +11,8 @@ PENDING_FILE = os.path.join(BASE_DIR, "pending_users.json")
 UPLOAD_BASE = os.path.join(BASE_DIR, "uploads")
 
 # 🔐 Telegram config
-BOT_TOKEN = "8237574970:AAGGmIA8pPjarNEQZFvNB5q6oqx7G_BPBhY"
-ADMIN_CHAT_ID = "7701363302"
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+ADMIN_CHAT_ID = os.environ.get("ADMIN_CHAT_ID")
 
 os.makedirs(UPLOAD_BASE, exist_ok=True)
 
